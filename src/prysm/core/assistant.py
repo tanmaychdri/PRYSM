@@ -48,6 +48,7 @@ class PrysmAssistant:
             AssistantState.IDLE: {
                 AssistantState.LISTENING,
                 AssistantState.PROCESSING,
+                AssistantState.SPEAKING,
                 AssistantState.STOPPING,
                 AssistantState.ERROR,
             },

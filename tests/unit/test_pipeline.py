@@ -30,6 +30,6 @@ async def test_assistant_invalid_state_transition():
     await assistant.lifecycle.start()
 
     with pytest.raises(RuntimeError, match="Invalid transition"):
-        await assistant.set_state(AssistantState.SPEAKING)
+        await assistant.set_state(AssistantState.STARTING)
 
     await assistant.stop()

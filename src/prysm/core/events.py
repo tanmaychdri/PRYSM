@@ -75,6 +75,59 @@ class ErrorOccurred(Event):
     exception: Exception | None = None
 
 
+@dataclass(kw_only=True)
+class WakeWordDetected(Event):
+    model: str
+    confidence: float
+
+
+@dataclass(kw_only=True)
+class SpeechStarted(Event):
+    pass
+
+
+@dataclass(kw_only=True)
+class SpeechStopped(Event):
+    duration: float
+
+
+@dataclass(kw_only=True)
+class TranscriptionStarted(Event):
+    pass
+
+
+@dataclass(kw_only=True)
+class TranscriptionCompleted(Event):
+    text: str
+    duration: float
+    language: str | None = None
+
+
+@dataclass(kw_only=True)
+class TranscriptionFailed(Event):
+    error: str
+
+
+@dataclass(kw_only=True)
+class TTSStarted(Event):
+    text: str
+
+
+@dataclass(kw_only=True)
+class TTSCompleted(Event):
+    pass
+
+
+@dataclass(kw_only=True)
+class TTSInterrupted(Event):
+    pass
+
+
+@dataclass(kw_only=True)
+class TTSFailed(Event):
+    error: str
+
+
 E = TypeVar("E", bound=Event)
 EventHandler = Callable[[E], Coroutine[Any, Any, None] | None]
 
