@@ -8,10 +8,10 @@ class MockLLMProvider(LLMProvider):
     """A mock LLM provider for testing the core runtime without AI."""
 
     async def generate_response(
-        self, prompt: str, context: list[dict[str, Any]]
+        self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None
     ) -> BrainResponse:
         """Return a simple echo or stubbed response."""
         return BrainResponse(
-            text=f"Mock Response to: {prompt}",
+            text=f"Mock Response to: {messages}",
             finish_reason="stop",
         )

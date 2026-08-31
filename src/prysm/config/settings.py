@@ -45,6 +45,12 @@ class Settings(BaseSettings):
     environment: str = "development"
     debug: bool = False
 
+    # LLM Settings
+    llm_provider: str = "openai"
+    llm_model: str = "gpt-4o"
+    llm_api_key: str | None = None
+    llm_base_url: str | None = None
+
     audio: AudioSettings = Field(default_factory=AudioSettings)
     wakeword: WakeWordSettings = Field(default_factory=WakeWordSettings)
     vad: VADSettings = Field(default_factory=VADSettings)

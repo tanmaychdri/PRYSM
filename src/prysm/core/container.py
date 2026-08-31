@@ -16,15 +16,51 @@ class ApplicationContainer:
     """Central Dependency Injection container."""
 
     def __init__(self, settings: Settings | None = None):
+        from prysm.brain.providers.openai_provider import OpenAILLMProvider
+        from prysm.brain.context import ContextManager
+        from prysm.tools.executor import ToolExecutor
+        from prysm.os_integration.windows import WindowsSystemControl
+        from prysm.tools.builtin.system import (
+            SystemTimeGetTool,
+            SystemInfoTool,
+            SystemVolumeGetTool,
+            SystemVolumeSetTool,
+            SystemAppLaunchTool,
+        )
+        
         self.settings = settings or Settings()
         self.event_bus = EventBus()
         self.tool_registry = ToolRegistry()
-        self.llm_provider: LLMProvider = MockLLMProvider()
+        
+        # OS Integration
+        self.sys_ctrl = WindowsSystemControl()
+        
+        # Register Built-in Tools
+        self.tool_registry.register(SystemTimeGetTool())
+        self.tool_registry.register(SystemInfoTool())
+        self.tool_registry.register(SystemVolumeGetTool(self.sys_ctrl))
+        self.tool_registry.register(SystemVolumeSetTool(self.sys_ctrl))
+        self.tool_registry.register(SystemAppLaunchTool(self.sys_ctrl))
+
+        self.context_manager = ContextManager()
+        self.tool_executor = ToolExecutor(self.tool_registry)
+
+        # Wire LLM Provider
+        if self.settings.llm_api_key:
+            self.llm_provider = OpenAILLMProvider(
+                api_key=self.settings.llm_api_key,
+                model=self.settings.llm_model,
+                base_url=self.settings.llm_base_url,
+            )
+        else:
+            self.llm_provider = MockLLMProvider()
 
         self.assistant = PrysmAssistant(
             event_bus=self.event_bus,
             tool_registry=self.tool_registry,
             llm_provider=self.llm_provider,
+            context_manager=self.context_manager,
+            tool_executor=self.tool_executor,
         )
 
         # Audio Pipeline

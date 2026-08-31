@@ -29,10 +29,14 @@ class PrysmAssistant:
         event_bus: EventBus,
         tool_registry: ToolRegistry,
         llm_provider: LLMProvider,
+        context_manager: "ContextManager",
+        tool_executor: "ToolExecutor",
     ):
         self.event_bus = event_bus
         self.tool_registry = tool_registry
         self.llm_provider = llm_provider
+        self.context_manager = context_manager
+        self.tool_executor = tool_executor
 
         self.lifecycle = Lifecycle()
         self.state = AssistantState.STARTING
@@ -151,38 +155,85 @@ class PrysmAssistant:
             await self.lifecycle.stop()
 
     async def process(self, user_input: UserInput) -> BrainResponse | None:
-        """Process a user input through the core pipeline."""
+        """Process a user input through the core pipeline, including tool execution loops."""
         if self.state != AssistantState.IDLE:
             logger.warning("Assistant is not IDLE, cannot process input right now.")
             return None
-
-        ctx = RequestContext(input=user_input)
 
         try:
             await self.event_bus.publish(
                 InputReceived(input_text=user_input.text, source=user_input.source)
             )
             await self.set_state(AssistantState.PROCESSING, reason="Input received")
-            await self.event_bus.publish(ProcessingStarted())
+            
+            # Add to context
+            self.context_manager.add_user_message(user_input.text)
 
-            await self.set_state(AssistantState.THINKING, reason="Calling Brain")
-            await self.event_bus.publish(AssistantThinkingStarted())
+            MAX_TOOL_ITERATIONS = 8
+            iteration = 0
+            final_response = None
+            
+            while iteration < MAX_TOOL_ITERATIONS:
+                iteration += 1
+                
+                await self.set_state(AssistantState.THINKING, reason="Calling Brain")
+                if iteration == 1:
+                    await self.event_bus.publish(ProcessingStarted())
+                    await self.event_bus.publish(AssistantThinkingStarted())
 
-            context_messages = [{"role": "user", "content": user_input.text}]
+                messages = self.context_manager.get_messages()
+                
+                # Format tools for provider
+                tools = []
+                for schema in self.tool_registry.get_all_schemas():
+                    tools.append({
+                        "type": "function",
+                        "function": {
+                            "name": schema["name"],
+                            "description": schema["description"],
+                            "parameters": schema["parameters"],
+                        }
+                    })
 
-            response = await self.llm_provider.generate_response(
-                user_input.text, context_messages
-            )
+                response = await self.llm_provider.generate_response(messages, tools if tools else None)
 
-            await self.event_bus.publish(AssistantThinkingCompleted())
+                # Add assistant response to context
+                self.context_manager.add_assistant_message(
+                    text=response.text, tool_calls=response.tool_calls
+                )
 
-            await self.set_state(AssistantState.RESPONDING, reason="Brain responded")
-            await self.event_bus.publish(ResponseGenerated(response_text=response.text))
+                if response.tool_calls:
+                    await self.set_state(AssistantState.EXECUTING_TOOL, reason="Executing Tools")
+                    # Execute all tools concurrently
+                    tasks = []
+                    for tool_call in response.tool_calls:
+                        tasks.append(self.tool_executor.execute(tool_call))
+                    
+                    results = await asyncio.gather(*tasks)
+                    
+                    for result in results:
+                        self.context_manager.add_tool_result(result)
+                    
+                    # If there's text along with tool calls, we can optionally broadcast it
+                    if response.text:
+                        await self.event_bus.publish(ResponseGenerated(response_text=response.text))
+                        
+                else:
+                    final_response = response
+                    break
+            
+            if iteration >= MAX_TOOL_ITERATIONS:
+                logger.warning("Max tool iterations reached!")
+                
+            if final_response and final_response.text:
+                await self.event_bus.publish(AssistantThinkingCompleted())
+                await self.set_state(AssistantState.RESPONDING, reason="Final brain response")
+                await self.event_bus.publish(ResponseGenerated(response_text=final_response.text))
 
             await self.event_bus.publish(ProcessingCompleted())
             await self.set_state(AssistantState.IDLE, reason="Processing complete")
 
-            return response
+            return final_response
 
         except asyncio.CancelledError:
             logger.info("Processing was cancelled.")

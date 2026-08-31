@@ -6,7 +6,10 @@ from prysm.core.state import AssistantState
 
 @pytest.mark.asyncio
 async def test_assistant_initialization():
-    container = ApplicationContainer()
+    from prysm.config.settings import Settings
+    settings = Settings(_env_file=None)
+    settings.llm_api_key = None
+    container = ApplicationContainer(settings=settings)
     assistant = container.assistant
 
     assert assistant.state == AssistantState.STARTING
@@ -20,7 +23,10 @@ async def test_assistant_initialization():
 
 @pytest.mark.asyncio
 async def test_assistant_double_stop():
-    container = ApplicationContainer()
+    from prysm.config.settings import Settings
+    settings = Settings(_env_file=None)
+    settings.llm_api_key = None
+    container = ApplicationContainer(settings=settings)
     assistant = container.assistant
     await assistant.lifecycle.start()
 

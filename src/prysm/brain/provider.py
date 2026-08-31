@@ -9,7 +9,7 @@ class LLMProvider(ABC):
 
     @abstractmethod
     async def generate_response(
-        self, prompt: str, context: list[dict[str, Any]]
+        self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None
     ) -> BrainResponse:
-        """Generate a response given a prompt and context."""
+        """Generate a response given a context of normalized messages and tools."""
         pass

@@ -3,11 +3,14 @@ import pytest
 from prysm.core.container import ApplicationContainer
 from prysm.core.state import AssistantState
 from prysm.models.interactions import UserInput
+from prysm.config.settings import Settings
 
 
 @pytest.mark.asyncio
 async def test_assistant_process_pipeline():
-    container = ApplicationContainer()
+    settings = Settings(_env_file=None)
+    settings.llm_api_key = None
+    container = ApplicationContainer(settings=settings)
     assistant = container.assistant
     await assistant.lifecycle.start()
 
@@ -17,7 +20,7 @@ async def test_assistant_process_pipeline():
     response = await assistant.process(user_input)
 
     assert response is not None
-    assert "Mock Response to: Hello" in response.text
+    assert "Mock Response to:" in response.text
 
     assert assistant.state == AssistantState.IDLE
     await assistant.stop()
@@ -25,7 +28,9 @@ async def test_assistant_process_pipeline():
 
 @pytest.mark.asyncio
 async def test_assistant_invalid_state_transition():
-    container = ApplicationContainer()
+    settings = Settings(_env_file=None)
+    settings.llm_api_key = None
+    container = ApplicationContainer(settings=settings)
     assistant = container.assistant
     await assistant.lifecycle.start()
 

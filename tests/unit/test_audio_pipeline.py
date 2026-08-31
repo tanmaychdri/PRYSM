@@ -87,13 +87,20 @@ class FakeBrain(LLMProvider):
 
 @pytest.mark.asyncio
 async def test_voice_pipeline_end_to_end():
+    from prysm.brain.context import ContextManager
+    from prysm.tools.registry import ToolRegistry
+    from prysm.tools.executor import ToolExecutor
+
     settings = Settings()
     # Speed up tests
     settings.vad.silence_duration = 0.05
     settings.audio.chunk_size = 512
 
     bus = EventBus()
-    assistant = PrysmAssistant(bus, None, FakeBrain())  # type: ignore
+    reg = ToolRegistry()
+    ctx = ContextManager()
+    exe = ToolExecutor(reg)
+    assistant = PrysmAssistant(bus, reg, FakeBrain(), ctx, exe)  # type: ignore
     await assistant.lifecycle.start()
 
     audio_in = FakeAudioInput()
