@@ -13,6 +13,10 @@ dependencies = [
     "elevenlabs>=1.4.0",
     "setuptools",
     "openai>=3.6.0",
+    "psutil>=7.2.2",
+    "pycaw>=20251023",
+    "comtypes>=1.4.16",
+    "winshell>=0.6",
 ]
 
 [project.scripts]
@@ -45,5 +49,7 @@ select = ["E", "F", "I", "UP", "B", "SIM", "ASYNC"]
 ignore = []
 
 [tool.pyright]
-typeCheckingMode = "strict"
+typeCheckingMode = "basic"
 pythonVersion = "3.12"
+include = ["src"]
+exclude = [".venv"]

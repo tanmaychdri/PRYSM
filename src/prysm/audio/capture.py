@@ -74,16 +74,16 @@ class SoundDeviceOutput(AudioOutput):
 
     async def play_stream(self, audio_stream: AsyncGenerator[bytes, None]) -> None:
         self._stop_event.clear()
-        
+
         stream = sd.RawOutputStream(
             samplerate=self.settings.sample_rate,
             channels=self.settings.channels,
-            dtype='int16'
+            dtype="int16",
         )
         stream.start()
-        
+
         buffer = bytearray()
-        
+
         try:
             async for chunk in audio_stream:
                 if self._stop_event.is_set():
@@ -96,12 +96,12 @@ class SoundDeviceOutput(AudioOutput):
                         to_write = bytes(buffer[:write_len])
                         del buffer[:write_len]
                         await asyncio.to_thread(stream.write, to_write)
-            
+
             # Write any remaining bytes (must be multiple of 2)
             if len(buffer) >= 2:
                 write_len = len(buffer) - (len(buffer) % 2)
                 await asyncio.to_thread(stream.write, bytes(buffer[:write_len]))
-                
+
         finally:
             stream.stop()
             stream.close()

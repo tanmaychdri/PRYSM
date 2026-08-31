@@ -46,7 +46,9 @@ class OpenAILLMProvider(LLMProvider):
             if tools:
                 kwargs["tools"] = tools
 
-            logger.info(f"Calling LLM provider '{self.model}' with {len(messages)} messages.")
+            logger.info(
+                f"Calling LLM provider '{self.model}' with {len(messages)} messages."
+            )
             response = await self.client.chat.completions.create(**kwargs)
             choice = response.choices[0]
 
@@ -57,9 +59,11 @@ class OpenAILLMProvider(LLMProvider):
                     try:
                         args = json.loads(tc.function.arguments)
                     except json.JSONDecodeError:
-                        logger.warning(f"Failed to parse arguments for tool {tc.function.name}. Passing raw string.")
+                        logger.warning(
+                            f"Failed to parse arguments for tool {tc.function.name}. Passing raw string."
+                        )
                         args = {"raw_arguments": tc.function.arguments}
-                    
+
                     tool_calls.append(
                         LLMToolCall(
                             call_id=tc.id,
@@ -75,13 +79,19 @@ class OpenAILLMProvider(LLMProvider):
                 metadata={
                     "model": response.model,
                     "usage": {
-                        "prompt_tokens": response.usage.prompt_tokens if response.usage else 0,
-                        "completion_tokens": response.usage.completion_tokens if response.usage else 0,
-                        "total_tokens": response.usage.total_tokens if response.usage else 0,
-                    }
+                        "prompt_tokens": response.usage.prompt_tokens
+                        if response.usage
+                        else 0,
+                        "completion_tokens": response.usage.completion_tokens
+                        if response.usage
+                        else 0,
+                        "total_tokens": response.usage.total_tokens
+                        if response.usage
+                        else 0,
+                    },
                 },
             )
 
-        except Exception as e:
+        except Exception:
             logger.exception("Error calling OpenAI provider.")
             raise

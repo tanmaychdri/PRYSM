@@ -1,10 +1,9 @@
 from abc import ABC, abstractmethod
+from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel
 
-
-from enum import Enum
 
 class ToolRisk(str, Enum):
     READ_ONLY = "READ_ONLY"

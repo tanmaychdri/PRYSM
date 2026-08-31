@@ -24,13 +24,17 @@ class ElevenLabsTTS(TextToSpeech):
         logger.info(f"Synthesizing text: '{text[:20]}...'")
         try:
             # Use configured voice, env var, or Adam (pNInz6obpgDQGcFmaJgB) as fallback
-            voice_id = self.settings.tts.voice_id or self.settings.elevenlabs_voice_id or "pNInz6obpgDQGcFmaJgB"
+            voice_id = (
+                self.settings.tts.voice_id
+                or self.settings.elevenlabs_voice_id
+                or "pNInz6obpgDQGcFmaJgB"
+            )
 
             audio_stream = self.client.text_to_speech.convert(
                 voice_id=voice_id,
                 model_id=self.settings.tts.model_id,
                 text=text,
-                output_format=self.settings.tts.output_format, # type: ignore
+                output_format=self.settings.tts.output_format,  # type: ignore
             )
 
             async for chunk in audio_stream:

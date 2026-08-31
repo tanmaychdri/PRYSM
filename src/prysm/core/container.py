@@ -5,7 +5,6 @@ from prysm.audio.providers.faster_whisper_stt import FasterWhisperSTT
 from prysm.audio.vad import EnergyVADDetector
 from prysm.audio.wakeword import EnergyWakeWordDetector
 from prysm.brain.mock import MockLLMProvider
-from prysm.brain.provider import LLMProvider
 from prysm.config.settings import Settings
 from prysm.core.assistant import PrysmAssistant
 from prysm.core.events import EventBus
@@ -16,31 +15,77 @@ class ApplicationContainer:
     """Central Dependency Injection container."""
 
     def __init__(self, settings: Settings | None = None):
-        from prysm.brain.providers.openai_provider import OpenAILLMProvider
         from prysm.brain.context import ContextManager
+        from prysm.brain.providers.openai_provider import OpenAILLMProvider
+        from prysm.platform.windows.applications import WindowsApplicationController
+
+        # Import Platform Controllers
+        from prysm.platform.windows.audio import WindowsAudioController
+        from prysm.platform.windows.files import WindowsFileController
+        from prysm.platform.windows.power import WindowsPowerController
+        from prysm.platform.windows.processes import WindowsProcessController
         from prysm.tools.executor import ToolExecutor
-        from prysm.os_integration.windows import WindowsSystemControl
-        from prysm.tools.builtin.system import (
-            SystemTimeGetTool,
-            SystemInfoTool,
-            SystemVolumeGetTool,
-            SystemVolumeSetTool,
+        from prysm.tools.system.applications import (
+            SystemAppCloseTool,
             SystemAppLaunchTool,
         )
-        
+        from prysm.tools.system.files import (
+            SystemFileSearchTool,
+            SystemRecycleBinEmptyTool,
+        )
+
+        # Import System Tools
+        from prysm.tools.system.info import SystemInfoTool, SystemTimeGetTool
+        from prysm.tools.system.power import (
+            SystemPowerRestartTool,
+            SystemPowerShutdownTool,
+            SystemPowerSleepTool,
+            SystemScreenLockTool,
+        )
+        from prysm.tools.system.processes import (
+            SystemProcessGetTool,
+            SystemProcessKillTool,
+            SystemProcessListTool,
+        )
+        from prysm.tools.system.volume import (
+            SystemVolumeGetTool,
+            SystemVolumeMuteTool,
+            SystemVolumeSetTool,
+        )
+
         self.settings = settings or Settings()
         self.event_bus = EventBus()
         self.tool_registry = ToolRegistry()
-        
-        # OS Integration
-        self.sys_ctrl = WindowsSystemControl()
-        
+
+        # Init OS Controllers
+        self.audio_ctrl = WindowsAudioController()
+        self.app_ctrl = WindowsApplicationController()
+        self.proc_ctrl = WindowsProcessController()
+        self.power_ctrl = WindowsPowerController()
+        self.file_ctrl = WindowsFileController()
+
         # Register Built-in Tools
         self.tool_registry.register(SystemTimeGetTool())
         self.tool_registry.register(SystemInfoTool())
-        self.tool_registry.register(SystemVolumeGetTool(self.sys_ctrl))
-        self.tool_registry.register(SystemVolumeSetTool(self.sys_ctrl))
-        self.tool_registry.register(SystemAppLaunchTool(self.sys_ctrl))
+
+        self.tool_registry.register(SystemVolumeGetTool(self.audio_ctrl))
+        self.tool_registry.register(SystemVolumeSetTool(self.audio_ctrl))
+        self.tool_registry.register(SystemVolumeMuteTool(self.audio_ctrl))
+
+        self.tool_registry.register(SystemAppLaunchTool(self.app_ctrl))
+        self.tool_registry.register(SystemAppCloseTool(self.app_ctrl))
+
+        self.tool_registry.register(SystemProcessListTool(self.proc_ctrl))
+        self.tool_registry.register(SystemProcessGetTool(self.proc_ctrl))
+        self.tool_registry.register(SystemProcessKillTool(self.proc_ctrl))
+
+        self.tool_registry.register(SystemPowerSleepTool(self.power_ctrl))
+        self.tool_registry.register(SystemPowerRestartTool(self.power_ctrl))
+        self.tool_registry.register(SystemPowerShutdownTool(self.power_ctrl))
+        self.tool_registry.register(SystemScreenLockTool(self.power_ctrl))
+
+        self.tool_registry.register(SystemRecycleBinEmptyTool(self.file_ctrl))
+        self.tool_registry.register(SystemFileSearchTool(self.file_ctrl))
 
         self.context_manager = ContextManager()
         self.tool_executor = ToolExecutor(self.tool_registry)

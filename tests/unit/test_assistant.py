@@ -7,6 +7,7 @@ from prysm.core.state import AssistantState
 @pytest.mark.asyncio
 async def test_assistant_initialization():
     from prysm.config.settings import Settings
+
     settings = Settings(_env_file=None)
     settings.llm_api_key = None
     container = ApplicationContainer(settings=settings)
@@ -24,6 +25,7 @@ async def test_assistant_initialization():
 @pytest.mark.asyncio
 async def test_assistant_double_stop():
     from prysm.config.settings import Settings
+
     settings = Settings(_env_file=None)
     settings.llm_api_key = None
     container = ApplicationContainer(settings=settings)

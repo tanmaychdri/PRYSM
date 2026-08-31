@@ -1,7 +1,12 @@
 import logging
 from typing import Any
 
-from prysm.models.interactions import Conversation, LLMMessage, LLMToolCall, ToolExecutionResult
+from prysm.models.interactions import (
+    Conversation,
+    LLMMessage,
+    LLMToolCall,
+    ToolExecutionResult,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -63,15 +68,15 @@ class ContextManager:
                         "type": "function",
                         "function": {
                             "name": tc.tool_name,
-                            "arguments": tc.arguments, # We'll need to dump this as JSON in the provider
+                            "arguments": tc.arguments,  # We'll need to dump this as JSON in the provider
                         },
                     }
                     for tc in msg.tool_calls
                 ]
-            
+
             if msg.tool_call_id:
                 msg_dict["tool_call_id"] = msg.tool_call_id
-                
+
             messages.append(msg_dict)
 
         return messages

@@ -88,8 +88,8 @@ class FakeBrain(LLMProvider):
 @pytest.mark.asyncio
 async def test_voice_pipeline_end_to_end():
     from prysm.brain.context import ContextManager
-    from prysm.tools.registry import ToolRegistry
     from prysm.tools.executor import ToolExecutor
+    from prysm.tools.registry import ToolRegistry
 
     settings = Settings()
     # Speed up tests

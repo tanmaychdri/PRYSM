@@ -1,9 +1,9 @@
 import pytest
 
+from prysm.config.settings import Settings
 from prysm.core.container import ApplicationContainer
 from prysm.core.state import AssistantState
 from prysm.models.interactions import UserInput
-from prysm.config.settings import Settings
 
 
 @pytest.mark.asyncio

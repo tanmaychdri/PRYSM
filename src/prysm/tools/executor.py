@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import time
-from typing import Any
 
 from prysm.models.interactions import LLMToolCall, ToolExecutionResult
 from prysm.tools.registry import ToolRegistry
@@ -15,7 +14,9 @@ class ToolExecutor:
     def __init__(self, registry: ToolRegistry):
         self.registry = registry
 
-    async def execute(self, tool_call: LLMToolCall, timeout_s: float = 30.0) -> ToolExecutionResult:
+    async def execute(
+        self, tool_call: LLMToolCall, timeout_s: float = 30.0
+    ) -> ToolExecutionResult:
         """Execute a tool call safely."""
         start_time = time.time()
         tool = self.registry.get_tool(tool_call.tool_name)
@@ -33,11 +34,15 @@ class ToolExecutor:
 
         # TODO: Real confirmation mechanism via UI/Voice
         if tool.requires_confirmation:
-            logger.info(f"Tool {tool_call.tool_name} requires confirmation. Auto-confirming for now.")
+            logger.info(
+                f"Tool {tool_call.tool_name} requires confirmation. Auto-confirming for now."
+            )
 
         try:
-            logger.info(f"Executing tool {tool_call.tool_name} with args: {tool_call.arguments}")
-            
+            logger.info(
+                f"Executing tool {tool_call.tool_name} with args: {tool_call.arguments}"
+            )
+
             # Execute with timeout
             async with asyncio.timeout(timeout_s):
                 result = await tool.execute(**tool_call.arguments)
