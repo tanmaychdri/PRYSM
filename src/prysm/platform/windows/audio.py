@@ -28,7 +28,7 @@ class WindowsAudioController:
         if not PYCAW_AVAILABLE:
             raise RuntimeError("pycaw is not installed or available.")
         devices = AudioUtilities.GetSpeakers()
-        interface = devices.Activate( # type: ignore
+        interface = devices.Activate(  # type: ignore
             IAudioEndpointVolume._iid_, CLSCTX_ALL, None
         )
         return cast(interface, POINTER(IAudioEndpointVolume))
@@ -37,7 +37,7 @@ class WindowsAudioController:
         try:
             interface = self._get_interface()
             # GetMasterVolumeLevelScalar returns a float 0.0 - 1.0
-            scalar = interface.GetMasterVolumeLevelScalar() # type: ignore
+            scalar = interface.GetMasterVolumeLevelScalar()  # type: ignore
             return int(round(scalar * 100))
         except Exception as e:
             logger.error(f"Failed to get volume: {e}")
@@ -47,7 +47,7 @@ class WindowsAudioController:
         try:
             interface = self._get_interface()
             scalar = max(0.0, min(1.0, level / 100.0))
-            interface.SetMasterVolumeLevelScalar(scalar, None) # type: ignore
+            interface.SetMasterVolumeLevelScalar(scalar, None)  # type: ignore
             logger.debug(f"Set master volume to {level}%")
         except Exception as e:
             logger.error(f"Failed to set volume: {e}")
@@ -55,7 +55,7 @@ class WindowsAudioController:
     async def mute(self) -> None:
         try:
             interface = self._get_interface()
-            interface.SetMute(1, None) # type: ignore
+            interface.SetMute(1, None)  # type: ignore
             logger.debug("Muted master volume")
         except Exception as e:
             logger.error(f"Failed to mute: {e}")
@@ -63,7 +63,7 @@ class WindowsAudioController:
     async def unmute(self) -> None:
         try:
             interface = self._get_interface()
-            interface.SetMute(0, None) # type: ignore
+            interface.SetMute(0, None)  # type: ignore
             logger.debug("Unmuted master volume")
         except Exception as e:
             logger.error(f"Failed to unmute: {e}")
