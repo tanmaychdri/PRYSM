@@ -2,8 +2,10 @@ from collections.abc import Callable, Coroutine
 
 Hook = Callable[[], Coroutine[None, None, None]]
 
+
 class Lifecycle:
     """Manages application startup and shutdown lifecycle hooks."""
+
     def __init__(self):
         self._startup_hooks: list[Hook] = []
         self._shutdown_hooks: list[Hook] = []

@@ -8,7 +8,7 @@ Ensure you have `uv` installed.
 uv sync
 ```
 
-## Running
+## Running Development Chat
 ```bash
-uv run prysm
+uv run prysm chat
 ```

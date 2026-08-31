@@ -1,9 +1,9 @@
-
 from prysm.tools.interfaces import Tool
 
 
 class ToolRegistry:
     """Registry to manage and look up tools."""
+
     def __init__(self):
         self._tools: dict[str, Tool] = {}
 
