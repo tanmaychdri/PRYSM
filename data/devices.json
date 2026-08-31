@@ -1,0 +1,11 @@
+{
+  "5467662e-c06f-44b5-90bc-e01f88ed89dd": {
+    "device_id": "5467662e-c06f-44b5-90bc-e01f88ed89dd",
+    "name": "Mock Android Phone",
+    "platform": "android",
+    "shared_secret_b64": "bEiJHSVOBcegvffp/TDeSExgAKlFdbiOWN+zcggl5ZI=",
+    "paired_at": 1788202604.531814,
+    "last_seen": 1788202623.8713572,
+    "capabilities": []
+  }
+}

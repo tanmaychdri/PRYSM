@@ -9,6 +9,12 @@ from prysm.config.settings import Settings
 from prysm.core.assistant import PrysmAssistant
 from prysm.core.events import EventBus
 from prysm.tools.registry import ToolRegistry
+from prysm.tools.system.applications import SystemAppCloseTool, SystemAppLaunchTool
+from prysm.tools.system.files import SystemFileSearchTool, SystemRecycleBinEmptyTool
+from prysm.tools.system.info import SystemInfoTool, SystemTimeGetTool
+from prysm.tools.system.power import SystemPowerRestartTool, SystemPowerShutdownTool, SystemPowerSleepTool, SystemScreenLockTool
+from prysm.tools.system.processes import SystemProcessGetTool, SystemProcessKillTool, SystemProcessListTool
+from prysm.tools.system.volume import SystemVolumeGetTool, SystemVolumeMuteTool, SystemVolumeSetTool
 
 
 class ApplicationContainer:
@@ -25,37 +31,13 @@ class ApplicationContainer:
         from prysm.platform.windows.power import WindowsPowerController
         from prysm.platform.windows.processes import WindowsProcessController
         from prysm.tools.executor import ToolExecutor
-        from prysm.tools.system.applications import (
-            SystemAppCloseTool,
-            SystemAppLaunchTool,
-        )
-        from prysm.tools.system.files import (
-            SystemFileSearchTool,
-            SystemRecycleBinEmptyTool,
-        )
-
-        # Import System Tools
-        from prysm.tools.system.info import SystemInfoTool, SystemTimeGetTool
-        from prysm.tools.system.power import (
-            SystemPowerRestartTool,
-            SystemPowerShutdownTool,
-            SystemPowerSleepTool,
-            SystemScreenLockTool,
-        )
-        from prysm.tools.system.processes import (
-            SystemProcessGetTool,
-            SystemProcessKillTool,
-            SystemProcessListTool,
-        )
-        from prysm.tools.system.volume import (
-            SystemVolumeGetTool,
-            SystemVolumeMuteTool,
-            SystemVolumeSetTool,
-        )
 
         self.settings = settings or Settings()
         self.event_bus = EventBus()
         self.tool_registry = ToolRegistry()
+        from prysm.mobile.service import MobileService
+
+        self.mobile_service = MobileService(self.event_bus)
 
         # Init OS Controllers
         self.audio_ctrl = WindowsAudioController()
@@ -64,7 +46,6 @@ class ApplicationContainer:
         self.power_ctrl = WindowsPowerController()
         self.file_ctrl = WindowsFileController()
 
-        # Register Built-in Tools
         self.tool_registry.register(SystemTimeGetTool())
         self.tool_registry.register(SystemInfoTool())
 
@@ -86,6 +67,17 @@ class ApplicationContainer:
 
         self.tool_registry.register(SystemRecycleBinEmptyTool(self.file_ctrl))
         self.tool_registry.register(SystemFileSearchTool(self.file_ctrl))
+
+        # Register Mobile Tools
+        from prysm.tools.mobile.device import MobileDeviceTools
+        from prysm.tools.mobile.location import MobileLocationTools
+        from prysm.tools.mobile.notification import MobileNotificationTools
+        from prysm.tools.mobile.sms import MobileSmsTools
+
+        MobileDeviceTools(self.mobile_service).register(self.tool_registry)
+        MobileSmsTools(self.mobile_service).register(self.tool_registry)
+        MobileNotificationTools(self.mobile_service).register(self.tool_registry)
+        MobileLocationTools(self.mobile_service).register(self.tool_registry)
 
         self.context_manager = ContextManager()
         self.tool_executor = ToolExecutor(self.tool_registry)

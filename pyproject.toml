@@ -17,6 +17,8 @@ dependencies = [
     "pycaw>=20251023",
     "comtypes>=1.4.16",
     "winshell>=0.6",
+    "websockets>=17.1",
+    "cryptography>=50.0.1",
 ]
 
 [project.scripts]

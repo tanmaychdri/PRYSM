@@ -28,9 +28,7 @@ class WindowsAudioController:
         if not PYCAW_AVAILABLE:
             raise RuntimeError("pycaw is not installed or available.")
         devices = AudioUtilities.GetSpeakers()
-        interface = devices.Activate(  # type: ignore
-            IAudioEndpointVolume._iid_, CLSCTX_ALL, None
-        )
+        interface = devices.EndpointVolume
         return cast(interface, POINTER(IAudioEndpointVolume))
 
     async def get_volume(self) -> int:

@@ -128,6 +128,12 @@ class TTSFailed(Event):
     error: str
 
 
+@dataclass(kw_only=True)
+class MobileEvent(Event):
+    event_type: str
+    payload: dict[str, Any]
+
+
 E = TypeVar("E", bound=Event)
 EventHandler = Callable[[E], Coroutine[Any, Any, None] | None]
 

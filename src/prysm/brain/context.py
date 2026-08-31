@@ -1,3 +1,4 @@
+import json
 import logging
 from typing import Any
 
@@ -68,7 +69,9 @@ class ContextManager:
                         "type": "function",
                         "function": {
                             "name": tc.tool_name,
-                            "arguments": tc.arguments,  # We'll need to dump this as JSON in the provider
+                            "arguments": json.dumps(tc.arguments)
+                            if isinstance(tc.arguments, dict)
+                            else tc.arguments,
                         },
                     }
                     for tc in msg.tool_calls
