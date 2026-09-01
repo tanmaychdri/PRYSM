@@ -28,10 +28,11 @@ class MobileDeviceListTool(Tool):
                 "name": dev.name,
                 "platform": dev.platform,
                 "capabilities": dev.capabilities,
-                "is_connected": dev.device_id in self.service.get_connected_devices()
+                "is_connected": dev.device_id in self.service.get_connected_devices(),
             }
             for dev in devices
         ]
+
 
 class MobileDeviceStatusTool(Tool):
     def __init__(self, service: MobileService):
@@ -47,7 +48,7 @@ class MobileDeviceStatusTool(Tool):
                 "properties": {
                     "device_id": {
                         "type": "string",
-                        "description": "The unique ID of the paired device."
+                        "description": "The unique ID of the paired device.",
                     }
                 },
                 "required": ["device_id"],
@@ -60,7 +61,10 @@ class MobileDeviceStatusTool(Tool):
 
     async def execute(self, **kwargs: Any) -> Any:
         device_id = kwargs.get("device_id")
-        return await self.service.send_device_request(device_id, "mobile.device.status", {})
+        return await self.service.send_device_request(
+            device_id, "mobile.device.status", {}
+        )
+
 
 class MobileDeviceRevokeTool(Tool):
     def __init__(self, service: MobileService):
@@ -76,7 +80,7 @@ class MobileDeviceRevokeTool(Tool):
                 "properties": {
                     "device_id": {
                         "type": "string",
-                        "description": "The unique ID of the paired device."
+                        "description": "The unique ID of the paired device.",
                     }
                 },
                 "required": ["device_id"],
@@ -99,6 +103,7 @@ class MobileDeviceRevokeTool(Tool):
         self.service.registry.remove_device(device_id)
         return {"success": True, "message": f"Device {device_id} has been revoked."}
 
+
 class MobileDeviceTools:
     def __init__(self, service: MobileService):
         self.service = service
@@ -111,6 +116,6 @@ class MobileDeviceTools:
     # Provide these so the CLI can use them directly without mock args
     async def revoke_device(self, device_id: str):
         return await MobileDeviceRevokeTool(self.service).execute(device_id=device_id)
-        
+
     async def device_status(self, device_id: str):
         return await MobileDeviceStatusTool(self.service).execute(device_id=device_id)

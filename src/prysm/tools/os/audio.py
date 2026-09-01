@@ -1,17 +1,17 @@
 from typing import Any
 
-from prysm.platform.windows.audio import AudioController
+from prysm.platform.windows.audio import WindowsAudioController
 from prysm.tools.interfaces import Tool, ToolRisk, ToolSchema
 
 
-class SystemVolumeGetTool(Tool):
-    def __init__(self, audio_ctrl: AudioController):
-        self.audio_ctrl = audio_ctrl
+class AudioVolumeGetTool(Tool):
+    def __init__(self, ctrl: WindowsAudioController):
+        self.ctrl = ctrl
 
     @property
     def schema(self) -> ToolSchema:
         return ToolSchema(
-            name="system.volume.get",
+            name="audio.volume.get",
             description="Get the current system master volume level (0-100).",
             parameters={"type": "object", "properties": {}, "required": []},
         )
@@ -21,18 +21,18 @@ class SystemVolumeGetTool(Tool):
         return ToolRisk.READ_ONLY
 
     async def execute(self, **kwargs: Any) -> Any:
-        return {"level": await self.audio_ctrl.get_volume()}
+        return {"level": await self.ctrl.get_volume()}
 
 
-class SystemVolumeSetTool(Tool):
-    def __init__(self, audio_ctrl: AudioController):
-        self.audio_ctrl = audio_ctrl
+class AudioVolumeSetTool(Tool):
+    def __init__(self, ctrl: WindowsAudioController):
+        self.ctrl = ctrl
 
     @property
     def schema(self) -> ToolSchema:
         return ToolSchema(
-            name="system.volume.set",
-            description="Set the system volume to a specific percentage from 0 to 100. Use this when the user asks to change the computer's overall speaker/headphone volume.",
+            name="audio.volume.set",
+            description="Set the system volume to a specific percentage from 0 to 100.",
             parameters={
                 "type": "object",
                 "properties": {
@@ -56,19 +56,19 @@ class SystemVolumeSetTool(Tool):
         if not isinstance(level, int) or level < 0 or level > 100:
             raise ValueError("Volume level must be an integer between 0 and 100.")
 
-        await self.audio_ctrl.set_volume(level)
+        await self.ctrl.set_volume(level)
         return {"success": True, "level": level}
 
 
-class SystemVolumeMuteTool(Tool):
-    def __init__(self, audio_ctrl: AudioController):
-        self.audio_ctrl = audio_ctrl
+class AudioMuteTool(Tool):
+    def __init__(self, ctrl: WindowsAudioController):
+        self.ctrl = ctrl
 
     @property
     def schema(self) -> ToolSchema:
         return ToolSchema(
-            name="system.volume.mute",
-            description="Mute or unmute the system volume. Use this when the user asks to mute the computer or restore sound.",
+            name="audio.mute",
+            description="Mute or unmute the system volume.",
             parameters={
                 "type": "object",
                 "properties": {
@@ -88,7 +88,17 @@ class SystemVolumeMuteTool(Tool):
     async def execute(self, **kwargs: Any) -> Any:
         mute = kwargs.get("mute", True)
         if mute:
-            await self.audio_ctrl.mute()
+            await self.ctrl.mute()
         else:
-            await self.audio_ctrl.unmute()
+            await self.ctrl.unmute()
         return {"success": True, "muted": mute}
+
+
+class OsAudioTools:
+    def __init__(self, ctrl: WindowsAudioController):
+        self.ctrl = ctrl
+
+    def register(self, registry):
+        registry.register(AudioVolumeGetTool(self.ctrl))
+        registry.register(AudioVolumeSetTool(self.ctrl))
+        registry.register(AudioMuteTool(self.ctrl))

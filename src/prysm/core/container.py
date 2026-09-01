@@ -9,12 +9,6 @@ from prysm.config.settings import Settings
 from prysm.core.assistant import PrysmAssistant
 from prysm.core.events import EventBus
 from prysm.tools.registry import ToolRegistry
-from prysm.tools.system.applications import SystemAppCloseTool, SystemAppLaunchTool
-from prysm.tools.system.files import SystemFileSearchTool, SystemRecycleBinEmptyTool
-from prysm.tools.system.info import SystemInfoTool, SystemTimeGetTool
-from prysm.tools.system.power import SystemPowerRestartTool, SystemPowerShutdownTool, SystemPowerSleepTool, SystemScreenLockTool
-from prysm.tools.system.processes import SystemProcessGetTool, SystemProcessKillTool, SystemProcessListTool
-from prysm.tools.system.volume import SystemVolumeGetTool, SystemVolumeMuteTool, SystemVolumeSetTool
 
 
 class ApplicationContainer:
@@ -23,13 +17,17 @@ class ApplicationContainer:
     def __init__(self, settings: Settings | None = None):
         from prysm.brain.context import ContextManager
         from prysm.brain.providers.openai_provider import OpenAILLMProvider
-        from prysm.platform.windows.applications import WindowsApplicationController
 
-        # Import Platform Controllers
+        # Import Platform Services
+        from prysm.platform.windows.applications import WindowsApplicationService
         from prysm.platform.windows.audio import WindowsAudioController
+        from prysm.platform.windows.displays import WindowsDisplayService
         from prysm.platform.windows.files import WindowsFileController
         from prysm.platform.windows.power import WindowsPowerController
         from prysm.platform.windows.processes import WindowsProcessController
+        from prysm.platform.windows.system import WindowsSystemService
+        from prysm.platform.windows.windows import WindowsWindowService
+        from prysm.platform.windows.workspaces import WindowsWorkspaceService
         from prysm.tools.executor import ToolExecutor
 
         self.settings = settings or Settings()
@@ -39,34 +37,40 @@ class ApplicationContainer:
 
         self.mobile_service = MobileService(self.event_bus)
 
-        # Init OS Controllers
-        self.audio_ctrl = WindowsAudioController()
-        self.app_ctrl = WindowsApplicationController()
-        self.proc_ctrl = WindowsProcessController()
-        self.power_ctrl = WindowsPowerController()
-        self.file_ctrl = WindowsFileController()
+        # Init OS Services
+        self.audio_svc = WindowsAudioController()
+        self.app_svc = WindowsApplicationService()
+        self.proc_svc = WindowsProcessController()
+        self.power_svc = WindowsPowerController()
+        self.file_svc = WindowsFileController()
+        self.window_svc = WindowsWindowService()
+        self.display_svc = WindowsDisplayService()
+        self.system_svc = WindowsSystemService()
+        self.workspace_svc = WindowsWorkspaceService(self.app_svc, self.window_svc)
 
-        self.tool_registry.register(SystemTimeGetTool())
-        self.tool_registry.register(SystemInfoTool())
+        # Register OS Tools
+        from prysm.tools.os.app import OsAppTools
+        from prysm.tools.os.audio import OsAudioTools
+        from prysm.tools.os.display import OsDisplayTools
+        from prysm.tools.os.file import OsFileTools
+        from prysm.tools.os.power import OsPowerTools
+        from prysm.tools.os.process import OsProcessTools
+        from prysm.tools.os.system import OsSystemTools
+        from prysm.tools.os.window import OsWindowTools
+        from prysm.tools.os.workspace import OsWorkspaceTools
 
-        self.tool_registry.register(SystemVolumeGetTool(self.audio_ctrl))
-        self.tool_registry.register(SystemVolumeSetTool(self.audio_ctrl))
-        self.tool_registry.register(SystemVolumeMuteTool(self.audio_ctrl))
+        OsAppTools(self.app_svc).register(self.tool_registry)
+        OsAudioTools(self.audio_svc).register(self.tool_registry)
+        OsDisplayTools(self.display_svc).register(self.tool_registry)
+        OsFileTools(self.file_svc).register(self.tool_registry)
+        OsPowerTools(self.power_svc).register(self.tool_registry)
+        OsProcessTools(self.proc_svc).register(self.tool_registry)
+        OsSystemTools(self.system_svc).register(self.tool_registry)
+        OsWindowTools(self.window_svc).register(self.tool_registry)
+        OsWorkspaceTools(self.workspace_svc).register(self.tool_registry)
 
-        self.tool_registry.register(SystemAppLaunchTool(self.app_ctrl))
-        self.tool_registry.register(SystemAppCloseTool(self.app_ctrl))
+        # Time tool is now registered inside OsSystemTools
 
-        self.tool_registry.register(SystemProcessListTool(self.proc_ctrl))
-        self.tool_registry.register(SystemProcessGetTool(self.proc_ctrl))
-        self.tool_registry.register(SystemProcessKillTool(self.proc_ctrl))
-
-        self.tool_registry.register(SystemPowerSleepTool(self.power_ctrl))
-        self.tool_registry.register(SystemPowerRestartTool(self.power_ctrl))
-        self.tool_registry.register(SystemPowerShutdownTool(self.power_ctrl))
-        self.tool_registry.register(SystemScreenLockTool(self.power_ctrl))
-
-        self.tool_registry.register(SystemRecycleBinEmptyTool(self.file_ctrl))
-        self.tool_registry.register(SystemFileSearchTool(self.file_ctrl))
 
         # Register Mobile Tools
         from prysm.tools.mobile.device import MobileDeviceTools

@@ -18,7 +18,7 @@ class MobileLocationGetTool(Tool):
                 "properties": {
                     "device_id": {
                         "type": "string",
-                        "description": "The unique ID of the paired device."
+                        "description": "The unique ID of the paired device.",
                     }
                 },
                 "required": ["device_id"],
@@ -32,10 +32,9 @@ class MobileLocationGetTool(Tool):
     async def execute(self, **kwargs: Any) -> Any:
         device_id = kwargs.get("device_id")
         return await self.service.send_device_request(
-            device_id, 
-            "mobile.location.get", 
-            {}
+            device_id, "mobile.location.get", {}
         )
+
 
 class MobileLocationTools:
     def __init__(self, service: MobileService):

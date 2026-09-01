@@ -18,16 +18,16 @@ class MobileSmsSendTool(Tool):
                 "properties": {
                     "device_id": {
                         "type": "string",
-                        "description": "The unique ID of the paired device."
+                        "description": "The unique ID of the paired device.",
                     },
                     "recipient": {
                         "type": "string",
-                        "description": "The phone number or resolved contact to send the SMS to."
+                        "description": "The phone number or resolved contact to send the SMS to.",
                     },
                     "message": {
                         "type": "string",
-                        "description": "The body of the SMS message."
-                    }
+                        "description": "The body of the SMS message.",
+                    },
                 },
                 "required": ["device_id", "recipient", "message"],
             },
@@ -42,10 +42,9 @@ class MobileSmsSendTool(Tool):
         recipient = kwargs.get("recipient")
         message = kwargs.get("message")
         return await self.service.send_device_request(
-            device_id, 
-            "mobile.sms.send", 
-            {"to": recipient, "body": message}
+            device_id, "mobile.sms.send", {"to": recipient, "body": message}
         )
+
 
 class MobileSmsListTool(Tool):
     def __init__(self, service: MobileService):
@@ -61,12 +60,12 @@ class MobileSmsListTool(Tool):
                 "properties": {
                     "device_id": {
                         "type": "string",
-                        "description": "The unique ID of the paired device."
+                        "description": "The unique ID of the paired device.",
                     },
                     "limit": {
                         "type": "integer",
-                        "description": "Max number of recent conversations to fetch (default 10)."
-                    }
+                        "description": "Max number of recent conversations to fetch (default 10).",
+                    },
                 },
                 "required": ["device_id"],
             },
@@ -80,10 +79,9 @@ class MobileSmsListTool(Tool):
         device_id = kwargs.get("device_id")
         limit = kwargs.get("limit", 10)
         return await self.service.send_device_request(
-            device_id, 
-            "mobile.sms.list", 
-            {"limit": limit}
+            device_id, "mobile.sms.list", {"limit": limit}
         )
+
 
 class MobileSmsTools:
     def __init__(self, service: MobileService):

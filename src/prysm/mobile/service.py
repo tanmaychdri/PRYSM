@@ -50,29 +50,35 @@ class MobileService:
     def _handle_event(self, msg: EventMessage):
         """Route Android events into PRYSM."""
         logger.debug(f"Received mobile event: {msg.event} from {msg.device_id}")
-        asyncio.create_task(self.bus.publish(
-            MobileEvent(
-                event_type=f"mobile.{msg.event}",
-                payload={"device_id": msg.device_id, **msg.payload},
+        asyncio.create_task(
+            self.bus.publish(
+                MobileEvent(
+                    event_type=f"mobile.{msg.event}",
+                    payload={"device_id": msg.device_id, **msg.payload},
+                )
             )
-        ))
+        )
 
     def _handle_connect(self, device_id: str):
         dev = self.registry.get_device(device_id)
         name = dev.name if dev else device_id
-        asyncio.create_task(self.bus.publish(
-            MobileEvent(
-                event_type="mobile.device.connected",
-                payload={"device_id": device_id, "name": name},
+        asyncio.create_task(
+            self.bus.publish(
+                MobileEvent(
+                    event_type="mobile.device.connected",
+                    payload={"device_id": device_id, "name": name},
+                )
             )
-        ))
+        )
 
     def _handle_disconnect(self, device_id: str):
         dev = self.registry.get_device(device_id)
         name = dev.name if dev else device_id
-        asyncio.create_task(self.bus.publish(
-            MobileEvent(
-                event_type="mobile.device.disconnected",
-                payload={"device_id": device_id, "name": name},
+        asyncio.create_task(
+            self.bus.publish(
+                MobileEvent(
+                    event_type="mobile.device.disconnected",
+                    payload={"device_id": device_id, "name": name},
+                )
             )
-        ))
+        )

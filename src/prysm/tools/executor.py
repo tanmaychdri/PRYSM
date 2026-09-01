@@ -32,20 +32,34 @@ class ToolExecutor:
                 duration_s=time.time() - start_time,
             )
 
-        # TODO: Real confirmation mechanism via UI/Voice
+        args = dict(tool_call.arguments)
+        
+        # Intercept for confirmation
         if tool.requires_confirmation:
-            logger.info(
-                f"Tool {tool_call.tool_name} requires confirmation. Auto-confirming for now."
-            )
+            if not args.pop("_confirmed", False):
+                logger.info(f"Tool {tool_call.tool_name} requires confirmation. Returning prompt to LLM.")
+                return ToolExecutionResult(
+                    call_id=tool_call.call_id,
+                    tool_name=tool_call.tool_name,
+                    result=None,
+                    success=False,
+                    error_message=(
+                        "ConfirmationRequired: This tool modifies system state and requires explicit user confirmation. "
+                        "Please tell the user exactly what you are about to do, including the arguments, and ask them if it is OK. "
+                        "Once they confirm, call this tool again and add '_confirmed': true to the arguments."
+                    ),
+                    duration_s=time.time() - start_time,
+                    metadata={"risk": tool.risk_level.value},
+                )
+            else:
+                logger.info(f"Tool {tool_call.tool_name} executing with explicit confirmation.")
 
         try:
-            logger.info(
-                f"Executing tool {tool_call.tool_name} with args: {tool_call.arguments}"
-            )
+            logger.info(f"Executing tool {tool_call.tool_name} with args: {args}")
 
             # Execute with timeout
             async with asyncio.timeout(timeout_s):
-                result = await tool.execute(**tool_call.arguments)
+                result = await tool.execute(**args)
 
             logger.info(f"Tool {tool_call.tool_name} completed successfully.")
             return ToolExecutionResult(
