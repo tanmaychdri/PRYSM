@@ -1,20 +1,42 @@
 import logging
 import time
+from typing import TYPE_CHECKING
 
 from prysm.core.exceptions import ToolNotFoundError
 from prysm.models.interactions import LLMToolCall, ToolExecutionResult
 from prysm.tools.registry import ToolRegistry
 
+if TYPE_CHECKING:
+    from prysm.users.session import UserSession
+
 logger = logging.getLogger(__name__)
 
 
 class ToolExecutor:
-    """Executes tool calls by dispatching to the registered handler."""
+    """Executes tool calls, enforcing per-user permission checks."""
 
-    def __init__(self, registry: ToolRegistry) -> None:
+    def __init__(self, registry: ToolRegistry, session: "UserSession | None" = None) -> None:
         self._registry = registry
+        self._session = session
 
     async def execute(self, tool_call: LLMToolCall) -> ToolExecutionResult:
+        # Permission check
+        if self._session and not self._session.can_use_tool(tool_call.tool_name):
+            user = self._session.user
+            tier = user.tier.value if user else "unknown"
+            msg = (
+                f"Permission denied: '{tool_call.tool_name}' is not available "
+                f"for {tier} users."
+            )
+            logger.warning(msg)
+            return ToolExecutionResult(
+                call_id=tool_call.call_id,
+                tool_name=tool_call.tool_name,
+                result=None,
+                success=False,
+                error_message=msg,
+            )
+
         start = time.perf_counter()
         try:
             handler = self._registry.get_handler(tool_call.tool_name)

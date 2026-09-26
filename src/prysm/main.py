@@ -8,6 +8,7 @@ import numpy as np
 
 from prysm.core.container import ApplicationContainer
 from prysm.models.interactions import UserInput
+from prysm.users.auth_flow import run_auth_flow
 
 
 def setup_logging(level: int = logging.INFO) -> None:
@@ -29,6 +30,11 @@ async def run_voice() -> None:
     logger.info("Starting PRYSM in voice mode")
 
     container = ApplicationContainer()
+
+    # Auth
+    if not run_auth_flow(container.user_store, container.user_session):
+        return
+
     voice_pipeline = container.build_voice()  # builds audio only here
 
     asyncio.create_task(container.assistant.run())
@@ -49,20 +55,29 @@ async def run_chat() -> None:
     """Interactive text chat mode (no audio)."""
     setup_logging()
     container = ApplicationContainer()
-    assistant = container.assistant
 
+    # Auth — must login before chatting
+    if not run_auth_flow(container.user_store, container.user_session):
+        return
+
+    assistant = container.assistant
     task = asyncio.create_task(assistant.run())
     await asyncio.sleep(0.3)
 
+    user = container.user_session.user
+    badge = {"god": "👑", "admin": "🛡️", "user": "👤"}.get(user.tier.value, "") if user else ""
+    name = user.display_name if user else "Guest"
+
     print("\n╔══════════════════════════════╗")
-    print("║   PRYSM  —  Chat Mode        ║")
+    print(f"║   PRYSM  —  {badge} {name:<16}║")
     print("║   Type 'exit' to quit        ║")
     print("╚══════════════════════════════╝\n")
 
     try:
         while True:
             try:
-                user_text = input("You > ").strip()
+                prompt = f"{name} > "
+            user_text = input(prompt).strip()
             except EOFError:
                 break
             if not user_text:

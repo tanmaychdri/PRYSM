@@ -15,6 +15,9 @@ from prysm.tools.os.power import OsPowerTools
 from prysm.tools.os.system import OsSystemTools
 from prysm.tools.os.volume import OsVolumeTools
 from prysm.tools.registry import ToolRegistry
+from prysm.tools.user_tools import UserManagementTools
+from prysm.users.session import UserSession
+from prysm.users.store import UserStore
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +38,10 @@ class ApplicationContainer:
         self.event_bus = EventBus()
         self.tool_registry = ToolRegistry()
 
+        # Users
+        self.user_store = UserStore()
+        self.user_session = UserSession()
+
         # Register OS tools
         OsSystemTools().register(self.tool_registry)
         OsAppTools().register(self.tool_registry)
@@ -47,12 +54,16 @@ class ApplicationContainer:
         self.conversation_store = ConversationStore()
         MemoryTools(self.long_term_memory).register(self.tool_registry)
 
+        # User management tools
+        UserManagementTools(self.user_store, self.user_session).register(self.tool_registry)
+
         # Brain
         self.context_manager = ContextManager(
             long_term_memory=self.long_term_memory,
             conversation_store=self.conversation_store,
+            session=self.user_session,
         )
-        self.tool_executor = ToolExecutor(self.tool_registry)
+        self.tool_executor = ToolExecutor(self.tool_registry, session=self.user_session)
         self.llm_provider = OpenAILLMProvider(
             api_key=self.settings.llm_api_key,
             model=self.settings.llm_model,

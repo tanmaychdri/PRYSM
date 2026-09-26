@@ -13,8 +13,19 @@ You have a persistent memory of the user across all sessions. Use it naturally â
 preferences, and context without being asked. If the user mentions something that updates your memory, \
 acknowledge it and remember it.
 
+## Active user
+Name: {user_display}
+Tier: {user_tier}
+{tier_note}
+
 ## What you remember about the user:
 {memory}"""
+
+_TIER_NOTES = {
+    "god": "This is the owner and god-tier user. Full trust. No restrictions.",
+    "admin": "Admin user. Can use OS tools and manage normal users.",
+    "user": "Normal user. Chat only â€” OS tools and power commands are not available to them.",
+}
 
 
 class ContextManager:
@@ -25,13 +36,15 @@ class ContextManager:
 
     def __init__(
         self,
-        long_term_memory=None,   # LongTermMemory | None
-        conversation_store=None, # ConversationStore | None
+        long_term_memory=None,    # LongTermMemory | None
+        conversation_store=None,  # ConversationStore | None
+        session=None,             # UserSession | None
         max_recent_messages: int = 40,
         max_history_messages: int = 20,
     ) -> None:
         self._memory = long_term_memory
         self._store = conversation_store
+        self._session = session
         self._max_recent = max_recent_messages
         self._max_history = max_history_messages
 
@@ -73,9 +86,26 @@ class ContextManager:
     def get_messages(self) -> list[LLMMessage]:
         """Return system prompt + history + current session messages."""
         memory_text = self._memory.format_for_prompt() if self._memory else "(none)"
+
+        # User context for system prompt
+        if self._session and self._session.user:
+            u = self._session.user
+            user_display = u.display_name
+            user_tier = u.tier.value
+            tier_note = _TIER_NOTES.get(user_tier, "")
+        else:
+            user_display = "Unknown"
+            user_tier = "user"
+            tier_note = _TIER_NOTES["user"]
+
         system = LLMMessage(
             role="system",
-            content=_BASE_SYSTEM_PROMPT.format(memory=memory_text),
+            content=_BASE_SYSTEM_PROMPT.format(
+                memory=memory_text,
+                user_display=user_display,
+                user_tier=user_tier,
+                tier_note=tier_note,
+            ),
         )
         return [system] + self._history + self._messages
 
