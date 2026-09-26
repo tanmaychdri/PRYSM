@@ -1,32 +1,60 @@
 # PRYSM
 
-A modular, async-first personal AI assistant built in Python.
+A modular, async-first personal AI assistant for Windows.
 
-## Core Architecture
-PRYSM is designed with an event-driven architecture that currently supports:
-1. **Local Audio Pipeline**: Microphone -> Local Wake Word -> Local VAD -> Local faster-whisper.
-2. **Agentic LLM Brain**: An intelligent Tool-Calling loop that manages conversational memory and executes dynamic system tools safely.
-3. **Voice Synthesis**: ElevenLabs TTS integration.
+## Features
+
+- **Voice mode** — wake word → WhisperFlow STT → LLM → ElevenLabs TTS
+- **Chat mode** — interactive terminal chat
+- **Chat UI** — tkinter-based chat window
+- **OS tools** — system info, app launcher, power control, volume, clipboard
+- **OpenAI-compatible LLM** — works with OpenAI, Groq, Ollama, etc.
 
 ## Setup
-Ensure you have `uv` installed.
-```bash
-uv sync
-```
-Set up your environment variables by copying `.env.example` to `.env`:
-```bash
-# Example LLM Config (Groq, OpenAI, or Ollama)
-LLM_API_KEY=your_key_here
-LLM_PROVIDER=openai
-LLM_MODEL=llama-3.3-70b-versatile
-LLM_BASE_URL=https://api.groq.com/openai/v1
 
-# Voice Synthesis
-ELEVENLABS_API_KEY=your_key
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -e ".[dev]"
+copy .env.example .env
+# Edit .env with your API keys
 ```
 
-## Running Development Chat
-You can test the Agent Tool Loop interactively without triggering the audio pipeline by running:
-```bash
-uv run prysm chat
+## Usage
+
+```powershell
+prysm voice                          # Full voice mode
+prysm chat                           # Terminal chat
+python -m prysm.ui.chat_window       # Chat UI window
+prysm audio devices                  # List audio devices
+prysm audio test-mic                 # Mic volume meter
+prysm stt test                       # Record 5s + transcribe
+prysm tts test --text "Hello"        # TTS playback test
+```
+
+## Architecture
+
+```
+src/prysm/
+├── config/         Settings (pydantic-settings, reads .env)
+├── models/         Pydantic data models
+├── core/           Assistant, EventBus, state machine, lifecycle, DI container
+├── brain/          LLM provider + context manager
+├── audio/          Capture, output, VAD, wake word, voice pipeline
+│   └── providers/  FasterWhisper STT, ElevenLabs TTS
+├── tools/          Registry, executor, tool interface
+│   └── os/         Windows OS tools
+└── ui/             tkinter chat window
+```
+
+## Adding a Tool
+
+1. Create a class in `src/prysm/tools/os/` extending `BaseTool`
+2. Implement `get_schemas()` and `execute()`
+3. Register it in `src/prysm/core/container.py`
+
+## Tests
+
+```powershell
+pytest
 ```

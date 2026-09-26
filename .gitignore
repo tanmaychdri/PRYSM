@@ -1,33 +1,85 @@
+# ── Old / scratch ─────────────────────────────────────────────────────────────
 PRISM/
 ignored/
 
-# Byte-compiled / optimized / DLL files
+# ── Python bytecode ───────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyo
 
-# Environments
+# ── Distribution / packaging ──────────────────────────────────────────────────
+dist/
+build/
+*.egg-info/
+*.egg
+MANIFEST
+.eggs/
+wheels/
+
+# ── Virtual environments ──────────────────────────────────────────────────────
 .env
-.venv
+.venv/
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
 
-# IDEs
+# ── Secrets / config ──────────────────────────────────────────────────────────
+# Keep .env.example, ignore the real one
+.env.*
+!.env.example
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+logs/
+*.log
+*.log.*
+
+# ── ML model files ────────────────────────────────────────────────────────────
+*.pt
+*.pth
+*.onnx
+*.bin
+*.gguf
+*.safetensors
+
+# ── Audio / media ─────────────────────────────────────────────────────────────
+*.wav
+*.mp3
+*.mp4
+*.ogg
+*.flac
+
+# ── Data / cache ──────────────────────────────────────────────────────────────
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# ── Faster-Whisper / Hugging Face model cache ─────────────────────────────────
+.cache/
+huggingface/
+
+# ── IDEs ──────────────────────────────────────────────────────────────────────
 .vscode/
 .idea/
+*.suo
+*.user
 
-# OS generated files
+# ── OS generated ──────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
+desktop.ini
 
-# Tooling
+# ── Tooling ───────────────────────────────────────────────────────────────────
 .ruff_cache/
 .pytest_cache/
-.pytype/
 .mypy_cache/
+.pytype/
+.coverage
+coverage.xml
+htmlcov/
 
-# Graphify
-graphify-out
+# ── PyInstaller ───────────────────────────────────────────────────────────────
+*.spec
