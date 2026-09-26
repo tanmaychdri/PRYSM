@@ -181,6 +181,11 @@ def launch_chat_ui() -> None:
 
     container = ApplicationContainer()
 
+    # Auto-login as the god user (Tanmay) so personalization and OS tools work in the UI
+    user = container.user_store.get_user("tanmay")
+    if user:
+        container.user_session.login(user)
+
     # Start assistant in the background loop
     asyncio.run_coroutine_threadsafe(container.assistant.run(), loop)
 

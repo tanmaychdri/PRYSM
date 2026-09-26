@@ -73,11 +73,13 @@ async def run_chat() -> None:
     user = container.user_session.user
     badge = {"god": "👑", "admin": "🛡️", "user": "👤"}.get(user.tier.value, "") if user else ""
     name = user.display_name if user else "Guest"
-
-    print("\n╔══════════════════════════════╗")
-    print(f"║   PRYSM  —  {badge} {name:<16}║")
-    print("║   Type 'exit' to quit        ║")
-    print("╚══════════════════════════════╝\n")
+    
+    print(f"""
+    ╔═════════════════════════════════╗
+    ║    PRYSM  —  {badge} {name:<16}║
+    ║    Type 'exit' to quit          ║
+    ╚═════════════════════════════════╝
+    """)
 
     try:
         while True:

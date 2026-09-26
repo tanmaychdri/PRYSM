@@ -1,3 +1,4 @@
+from prysm.audio.pipeline import VoicePipeline
 import logging
 
 from prysm.brain.context import ContextManager
@@ -52,7 +53,7 @@ class ApplicationContainer:
         # Memory
         self.long_term_memory = LongTermMemory()
         self.conversation_store = ConversationStore()
-        MemoryTools(self.long_term_memory).register(self.tool_registry)
+        MemoryTools(self.long_term_memory, self.user_session).register(self.tool_registry)
 
         # User management tools
         UserManagementTools(self.user_store, self.user_session).register(self.tool_registry)

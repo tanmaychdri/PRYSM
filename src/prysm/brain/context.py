@@ -131,10 +131,16 @@ class ContextManager:
 
     def format_session_as_text(self) -> str:
         """Format current session as plain text for memory extraction."""
+        # Use the actual user's name so the LLM writes personalized facts
+        user_label = "User"
+        if self._session and self._session.user:
+            user_label = self._session.user.display_name
+
         lines = []
         for msg in self._messages:
             if msg.role == "user":
-                lines.append(f"User: {msg.content}")
+                lines.append(f"{user_label}: {msg.content}")
             elif msg.role == "assistant" and msg.content:
                 lines.append(f"PRYSM: {msg.content}")
         return "\n".join(lines)
+

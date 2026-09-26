@@ -155,8 +155,16 @@ class PrysmAssistant:
             # 2. Extract new long-term facts via LLM
             if hasattr(self.context_manager, "_memory") and self.context_manager._memory:
                 logger.info("Extracting long-term memories...")
+                # Resolve the user's name so facts are personalized
+                user_name = "the user"
+                if (
+                    hasattr(self.context_manager, "_session")
+                    and self.context_manager._session
+                    and self.context_manager._session.user
+                ):
+                    user_name = self.context_manager._session.user.display_name
                 added = await self.context_manager._memory.extract_and_store(
-                    session_text, self.llm_provider
+                    session_text, self.llm_provider, user_name=user_name
                 )
                 if added:
                     logger.info(f"Stored {added} new memory facts")

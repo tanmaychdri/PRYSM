@@ -21,13 +21,17 @@ DATA_DIR = Path("data")
 MEMORY_FILE = DATA_DIR / "memory.json"
 
 EXTRACTION_PROMPT = """You are a memory extraction assistant. 
-Given the conversation below, extract any NEW facts worth remembering long-term about the user.
+Given the conversation below, extract any NEW facts worth remembering long-term about {user_name}.
 Focus on:
 - Personal info (name, preferences, dislikes, habits)
 - Projects they are working on (name, tech stack, progress, decisions made)
 - Code or technical decisions made during the session
 - Goals and plans they mentioned
 - Anything they explicitly asked you to remember
+
+IMPORTANT: Always refer to the user by their name "{user_name}" in facts, NOT as "the user" or "User".
+For example, write "{user_name} prefers dark themes" instead of "User prefers dark themes".
+Write "{user_name}'s friend Aniket" instead of "User's friend Aniket".
 
 Return ONLY a JSON array of short fact strings. Each fact must be self-contained and specific.
 If there is nothing new to remember, return an empty array [].
@@ -103,6 +107,7 @@ class LongTermMemory:
         self,
         conversation_text: str,
         llm_provider,
+        user_name: str = "the user",
     ) -> int:
         """
         Ask the LLM to extract new facts from the conversation and store them.
@@ -114,6 +119,7 @@ class LongTermMemory:
         prompt = EXTRACTION_PROMPT.format(
             existing=existing_formatted,
             conversation=conversation_text,
+            user_name=user_name,
         )
 
         try:
@@ -133,7 +139,19 @@ class LongTermMemory:
             new_facts: list[str] = json.loads(text)
             if not isinstance(new_facts, list):
                 return 0
-            return self.add_facts(new_facts)
+                
+            # Bulletproof intercept: replace generic "User" if the LLM ignored instructions
+            cleaned_facts = []
+            for fact in new_facts:
+                if fact.startswith("User's "):
+                    fact = f"{user_name}'s " + fact[7:]
+                elif fact.startswith("User "):
+                    fact = f"{user_name} " + fact[5:]
+                elif fact.startswith("The user "):
+                    fact = f"{user_name} " + fact[9:]
+                cleaned_facts.append(fact)
+                
+            return self.add_facts(cleaned_facts)
 
         except json.JSONDecodeError:
             logger.warning("Memory extraction returned invalid JSON")

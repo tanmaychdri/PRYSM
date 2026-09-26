@@ -73,18 +73,16 @@ class VoicePipeline:
         logger.info("Voice pipeline stopped")
 
     async def _loop(self) -> None:
-        logger.info("Listening for wake word...")
+        # TODO: re-enable wake word detection when ready
+        # For now, always listen — VAD handles start/end of speech
+        logger.info("Listening continuously (wake word disabled)...")
         while self._running:
             try:
-                chunk = await self._audio_in.read_chunk()
-
-                # --- Wake word phase ---
-                if self._wake_word.detect(chunk):
+                transcript = await self._listen_for_speech()
+                if transcript:
                     await self._event_bus.publish(WakeWordDetected())
-                    transcript = await self._listen_for_speech()
-                    if transcript:
-                        user_input = UserInput(text=transcript, source="voice")
-                        await self._assistant.process(user_input)
+                    user_input = UserInput(text=transcript, source="voice")
+                    await self._assistant.process(user_input)
 
             except asyncio.CancelledError:
                 break
