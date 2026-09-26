@@ -8,7 +8,7 @@ import numpy as np
 
 from prysm.core.container import ApplicationContainer
 from prysm.models.interactions import UserInput
-from prysm.users.auth_flow import run_auth_flow
+
 
 
 def setup_logging(level: int = logging.INFO) -> None:
@@ -17,6 +17,17 @@ def setup_logging(level: int = logging.INFO) -> None:
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
         stream=sys.stdout,
     )
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _auto_login(container) -> None:
+    """Automatically log in as Tanmay (god user). No prompt needed while solo."""
+    user = container.user_store.get_user("tanmay")
+    if user:
+        container.user_session.login(user)
 
 
 # ---------------------------------------------------------------------------
@@ -30,10 +41,7 @@ async def run_voice() -> None:
     logger.info("Starting PRYSM in voice mode")
 
     container = ApplicationContainer()
-
-    # Auth
-    if not run_auth_flow(container.user_store, container.user_session):
-        return
+    _auto_login(container)
 
     voice_pipeline = container.build_voice()  # builds audio only here
 
@@ -56,9 +64,7 @@ async def run_chat() -> None:
     setup_logging()
     container = ApplicationContainer()
 
-    # Auth — must login before chatting
-    if not run_auth_flow(container.user_store, container.user_session):
-        return
+    _auto_login(container)
 
     assistant = container.assistant
     task = asyncio.create_task(assistant.run())
@@ -76,8 +82,7 @@ async def run_chat() -> None:
     try:
         while True:
             try:
-                prompt = f"{name} > "
-            user_text = input(prompt).strip()
+                user_text = input(f"{name} > ").strip()
             except EOFError:
                 break
             if not user_text:
