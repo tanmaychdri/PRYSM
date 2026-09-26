@@ -28,3 +28,6 @@ Thumbs.db
 .pytest_cache/
 .pytype/
 .mypy_cache/
+
+# Graphify
+graphify-out
