@@ -17,7 +17,7 @@ class SoundDeviceCapture(AudioCapture):
 
     def __init__(self, settings: AudioSettings) -> None:
         self._settings = settings
-        self._queue: asyncio.Queue[bytes] = asyncio.Queue(maxsize=100)
+        self._queue: asyncio.Queue[bytes] = asyncio.Queue(maxsize=2000)
         self._stream: sd.InputStream | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
 
@@ -43,6 +43,14 @@ class SoundDeviceCapture(AudioCapture):
 
     async def read_chunk(self) -> bytes:
         return await self._queue.get()
+
+    def flush(self) -> None:
+        """Discard all pending audio chunks in the queue."""
+        while not self._queue.empty():
+            try:
+                self._queue.get_nowait()
+            except asyncio.QueueEmpty:
+                break
 
     def _callback(self, indata: np.ndarray, frames: int, time_info, status) -> None:
         if status:

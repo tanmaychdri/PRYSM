@@ -23,6 +23,7 @@ class LLMMessage(BaseModel):
     content: str | None = None
     tool_calls: list[LLMToolCall] | None = None
     tool_call_id: str | None = None
+    name: str | None = None
 
 
 class ToolExecutionResult(BaseModel):

@@ -91,23 +91,44 @@ class VoicePipeline:
                 await asyncio.sleep(0.5)
 
     async def _listen_for_speech(self) -> str | None:
-        """Collect audio until VAD detects end of speech, then transcribe."""
-        await self._event_bus.publish(ListeningStarted())
-        await self._assistant.set_state(AssistantState.LISTENING, reason="wake word detected")
-
+        """Wait for speech to start, collect audio until it ends, then transcribe."""
         self._vad.reset()
+        self._audio_in.flush()
         frames: list[bytes] = []
-        timeout = 10.0
+
+        # 1. Wait for speech to actually start
+        speech_started = False
+        while self._running:
+            chunk = await self._audio_in.read_chunk()
+            frames.append(chunk)
+            # keep only the last ~5 frames (150ms) to catch the start of the first word
+            if len(frames) > 5:
+                frames.pop(0)
+
+            is_speech, _ = self._vad.process(chunk)
+            if is_speech:
+                speech_started = True
+                break
+
+        if not self._running or not speech_started:
+            return None
+
+        await self._event_bus.publish(ListeningStarted())
+        await self._assistant.set_state(AssistantState.LISTENING, reason="speech detected")
+
+        # 2. Record until speech ends (or timeout)
+        timeout = 15.0
         deadline = asyncio.get_event_loop().time() + timeout
 
         while asyncio.get_event_loop().time() < deadline:
             chunk = await self._audio_in.read_chunk()
             frames.append(chunk)
             _, speech_ended = self._vad.process(chunk)
-            if speech_ended and len(frames) > 5:
+            if speech_ended:
                 break
 
         if not frames:
+            await self._assistant.set_state(AssistantState.IDLE, reason="listening completed (no audio)")
             return None
 
         audio_data = b"".join(frames)
@@ -115,6 +136,10 @@ class VoicePipeline:
 
         await self._event_bus.publish(ListeningCompleted(transcript=transcript))
         logger.info(f"Heard: {transcript!r}")
+        
+        # We MUST transition back to IDLE so the assistant can process the input
+        await self._assistant.set_state(AssistantState.IDLE, reason="transcription complete")
+        
         return transcript or None
 
     async def _on_response_generated(self, event: ResponseGenerated) -> None:

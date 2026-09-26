@@ -80,7 +80,12 @@ class ContextManager:
     def add_tool_result(self, result: ToolExecutionResult) -> None:
         content = str(result.result) if result.success else f"Error: {result.error_message}"
         self._messages.append(
-            LLMMessage(role="tool", content=content, tool_call_id=result.call_id)
+            LLMMessage(
+                role="tool", 
+                content=content, 
+                tool_call_id=result.call_id,
+                name=result.tool_name,
+            )
         )
 
     def get_messages(self) -> list[LLMMessage]:

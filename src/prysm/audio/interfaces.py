@@ -14,6 +14,9 @@ class AudioCapture(ABC):
     @abstractmethod
     async def read_chunk(self) -> bytes: ...
 
+    @abstractmethod
+    def flush(self) -> None: ...
+
 
 class AudioOutput(ABC):
     """Interface for audio output devices."""

@@ -34,6 +34,7 @@ def _to_openai_message(msg: LLMMessage) -> ChatCompletionMessageParam:
             "role": "tool",
             "content": msg.content or "",
             "tool_call_id": msg.tool_call_id or "",
+            "name": getattr(msg, "name", None) or "unknown_tool",
         }
     if msg.role == "assistant" and msg.tool_calls:
         return {
