@@ -29,9 +29,11 @@ async def run_voice() -> None:
     logger.info("Starting PRYSM in voice mode")
 
     container = ApplicationContainer()
+    voice_pipeline = container.build_voice()  # builds audio only here
+
     asyncio.create_task(container.assistant.run())
     await asyncio.sleep(0.3)
-    await container.voice_pipeline.start()
+    await voice_pipeline.start()
 
     try:
         while not container.assistant._stop_event.is_set():
@@ -39,7 +41,7 @@ async def run_voice() -> None:
     except KeyboardInterrupt:
         logger.info("Shutting down...")
     finally:
-        await container.voice_pipeline.stop()
+        await voice_pipeline.stop()
         await container.assistant.stop()
 
 
@@ -90,6 +92,7 @@ async def test_mic() -> None:
     """Show live microphone volume levels."""
     setup_logging(logging.WARNING)
     container = ApplicationContainer()
+    container.build_voice()
     await container.audio_in.start()
     print("Microphone test — speak into the mic (Ctrl+C to stop)\n")
     try:
@@ -109,6 +112,7 @@ async def test_stt() -> None:
     """Record 5 seconds and transcribe."""
     setup_logging()
     container = ApplicationContainer()
+    container.build_voice()
     print("Recording for 5 seconds — speak now...")
     await container.audio_in.start()
 
@@ -127,6 +131,7 @@ async def test_tts(text: str) -> None:
     """Synthesize and play a text string."""
     setup_logging()
     container = ApplicationContainer()
+    container.build_voice()
     if not container.settings.elevenlabs_api_key:
         print("Error: ELEVENLABS_API_KEY not set in .env")
         return

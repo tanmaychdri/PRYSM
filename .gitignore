@@ -51,7 +51,7 @@ logs/
 *.ogg
 *.flac
 
-# ── Data / cache ──────────────────────────────────────────────────────────────
+# ── Data / cache (personal memory — never commit) ─────────────────────────────
 data/
 *.db
 *.sqlite

@@ -1,17 +1,14 @@
 import logging
 
-from prysm.audio.capture import SoundDeviceCapture, SoundDeviceOutput
-from prysm.audio.pipeline import VoicePipeline
-from prysm.audio.providers.elevenlabs_tts import ElevenLabsTTS
-from prysm.audio.providers.faster_whisper_stt import FasterWhisperSTT
-from prysm.audio.vad import EnergyVAD
-from prysm.audio.wakeword import EnergyWakeWordDetector
 from prysm.brain.context import ContextManager
 from prysm.brain.providers.openai_provider import OpenAILLMProvider
 from prysm.config.settings import Settings
 from prysm.core.assistant import PrysmAssistant
 from prysm.core.events import EventBus
+from prysm.memory.long_term import LongTermMemory
+from prysm.memory.store import ConversationStore
 from prysm.tools.executor import ToolExecutor
+from prysm.tools.memory_tools import MemoryTools
 from prysm.tools.os.app import OsAppTools
 from prysm.tools.os.clipboard import OsClipboardTools
 from prysm.tools.os.power import OsPowerTools
@@ -26,6 +23,9 @@ class ApplicationContainer:
     """
     Dependency injection container.
     Wires all concrete implementations together.
+
+    Audio components are only built when build_voice() is called,
+    so chat mode starts instantly without loading STT/TTS.
     """
 
     def __init__(self, settings: Settings | None = None) -> None:
@@ -42,8 +42,16 @@ class ApplicationContainer:
         OsVolumeTools().register(self.tool_registry)
         OsClipboardTools().register(self.tool_registry)
 
+        # Memory
+        self.long_term_memory = LongTermMemory()
+        self.conversation_store = ConversationStore()
+        MemoryTools(self.long_term_memory).register(self.tool_registry)
+
         # Brain
-        self.context_manager = ContextManager()
+        self.context_manager = ContextManager(
+            long_term_memory=self.long_term_memory,
+            conversation_store=self.conversation_store,
+        )
         self.tool_executor = ToolExecutor(self.tool_registry)
         self.llm_provider = OpenAILLMProvider(
             api_key=self.settings.llm_api_key,
@@ -60,7 +68,26 @@ class ApplicationContainer:
             tool_executor=self.tool_executor,
         )
 
-        # Audio
+        # Voice pipeline — not built until build_voice() is called
+        self.voice_pipeline = None
+
+        logger.info(
+            f"Container ready | LLM: {self.settings.llm_model} | "
+            f"Tools: {len(self.tool_registry.list_tools())}"
+        )
+
+    def build_voice(self) -> "VoicePipeline":  # noqa: F821
+        """
+        Lazily build all audio components and the voice pipeline.
+        Only called in voice mode — keeps chat mode fast and silent.
+        """
+        from prysm.audio.capture import SoundDeviceCapture, SoundDeviceOutput
+        from prysm.audio.pipeline import VoicePipeline
+        from prysm.audio.providers.elevenlabs_tts import ElevenLabsTTS
+        from prysm.audio.providers.faster_whisper_stt import FasterWhisperSTT
+        from prysm.audio.vad import EnergyVAD
+        from prysm.audio.wakeword import EnergyWakeWordDetector
+
         self.audio_in = SoundDeviceCapture(self.settings.audio)
         self.audio_out = SoundDeviceOutput(self.settings.audio)
         self.wake_word = EnergyWakeWordDetector(self.settings.wakeword)
@@ -68,7 +95,6 @@ class ApplicationContainer:
         self.stt = FasterWhisperSTT(self.settings.stt)
         self.tts = ElevenLabsTTS(self.settings)
 
-        # Voice pipeline
         self.voice_pipeline = VoicePipeline(
             settings=self.settings,
             audio_in=self.audio_in,
@@ -81,8 +107,5 @@ class ApplicationContainer:
             assistant=self.assistant,
         )
 
-        logger.info(
-            f"Container ready | LLM: {self.settings.llm_model} | "
-            f"STT: {self.settings.stt.model} | "
-            f"Tools: {len(self.tool_registry.list_tools())}"
-        )
+        logger.info(f"Voice pipeline ready | STT: {self.settings.stt.model}")
+        return self.voice_pipeline

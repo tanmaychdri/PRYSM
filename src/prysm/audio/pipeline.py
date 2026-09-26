@@ -52,10 +52,9 @@ class VoicePipeline:
         self._running = False
         self._task: asyncio.Task | None = None
 
-        # When a response is generated, speak it
-        self._event_bus.subscribe(ResponseGenerated, self._on_response_generated)
-
     async def start(self) -> None:
+        # Subscribe to TTS only when voice mode is actually running
+        self._event_bus.subscribe(ResponseGenerated, self._on_response_generated)
         await self._audio_in.start()
         self._running = True
         self._task = asyncio.create_task(self._loop(), name="voice-pipeline")
@@ -63,6 +62,7 @@ class VoicePipeline:
 
     async def stop(self) -> None:
         self._running = False
+        self._event_bus.unsubscribe(ResponseGenerated, self._on_response_generated)
         if self._task:
             self._task.cancel()
             try:

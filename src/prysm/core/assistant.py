@@ -137,7 +137,31 @@ class PrysmAssistant:
             await asyncio.gather(*self._background_tasks, return_exceptions=True)
             self._background_tasks.clear()
 
+        # Save session and extract long-term memories before exit
+        await self._persist_memory()
+
         await self.set_state(AssistantState.STOPPED, reason="cleanup complete")
+
+    async def _persist_memory(self) -> None:
+        """Save conversation history and extract long-term facts."""
+        try:
+            session_text = self.context_manager.format_session_as_text()
+            if not session_text.strip():
+                return
+
+            # 1. Save raw conversation to disk
+            self.context_manager.save_session()
+
+            # 2. Extract new long-term facts via LLM
+            if hasattr(self.context_manager, "_memory") and self.context_manager._memory:
+                logger.info("Extracting long-term memories...")
+                added = await self.context_manager._memory.extract_and_store(
+                    session_text, self.llm_provider
+                )
+                if added:
+                    logger.info(f"Stored {added} new memory facts")
+        except Exception:
+            logger.exception("Memory persistence failed")
 
     async def run(self) -> None:
         """Start the assistant and block until stopped."""

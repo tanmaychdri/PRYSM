@@ -1,3 +1,4 @@
+import json
 import logging
 from typing import Any
 
@@ -28,7 +29,8 @@ def _to_openai_message(msg: LLMMessage) -> ChatCompletionMessageParam:
                     "type": "function",
                     "function": {
                         "name": tc.tool_name,
-                        "arguments": str(tc.arguments),
+                        # Must be valid JSON string — never use str() on a dict
+                        "arguments": json.dumps(tc.arguments),
                     },
                 }
                 for tc in msg.tool_calls
@@ -50,6 +52,24 @@ class OpenAILLMProvider(LLMProvider):
         tools: list[dict[str, Any]] | None = None,
     ) -> BrainResponse:
         try:
+            return await self._call(messages, tools)
+        except LLMError as e:
+            # Some models (e.g. qwen on Groq) fail with 400 when tool generation
+            # is malformed. Retry once without tools so the user always gets a reply.
+            if tools and ("tool_use_failed" in str(e) or "400" in str(e)):
+                logger.warning("Tool call failed — retrying without tools")
+                try:
+                    return await self._call(messages, tools=None)
+                except LLMError:
+                    pass
+            raise
+
+    async def _call(
+        self,
+        messages: list[LLMMessage],
+        tools: list[dict[str, Any]] | None,
+    ) -> BrainResponse:
+        try:
             openai_messages = [_to_openai_message(m) for m in messages]
             kwargs: dict[str, Any] = {
                 "model": self._model,
@@ -65,7 +85,6 @@ class OpenAILLMProvider(LLMProvider):
 
             tool_calls: list[LLMToolCall] = []
             if message.tool_calls:
-                import json
                 for tc in message.tool_calls:
                     try:
                         args = json.loads(tc.function.arguments)
