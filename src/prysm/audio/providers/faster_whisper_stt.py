@@ -31,10 +31,14 @@ class FasterWhisperSTT(STTProvider):
 
     async def transcribe(self, audio_bytes: bytes) -> str:
         try:
+            import asyncio
             model = self._load_model()
             arr = np.frombuffer(audio_bytes, dtype=np.int16).astype(np.float32) / 32768.0
 
-            segments, _ = model.transcribe(
+            # Run the heavy, synchronous transcribe call in a background thread 
+            # to avoid freezing the event loop and dropping audio frames.
+            segments, _ = await asyncio.to_thread(
+                model.transcribe,
                 arr,
                 language=self._settings.language,
                 beam_size=5,
