@@ -7,7 +7,6 @@ import sounddevice as sd
 
 from prysm.audio.interfaces import AudioCapture, AudioOutput
 from prysm.config.settings import AudioSettings
-from prysm.core.exceptions import AudioError
 
 logger = logging.getLogger(__name__)
 
@@ -65,11 +64,16 @@ class SoundDeviceCapture(AudioCapture):
 
 
 class SoundDeviceOutput(AudioOutput):
-    """Speaker output using sounddevice."""
+    """Speaker output using sounddevice.
+
+    Playback is abortable: `stop()` aborts the current stream immediately,
+    which unblocks the blocking `write()` so speech can be cut off mid-sentence.
+    """
 
     def __init__(self, settings: AudioSettings) -> None:
         self._settings = settings
         self._current_stream: sd.OutputStream | None = None
+        self._stopped = False
 
     async def play_stream(self, stream: AsyncIterator[bytes]) -> None:
         loop = asyncio.get_running_loop()
@@ -81,16 +85,36 @@ class SoundDeviceOutput(AudioOutput):
         )
         out.start()
         self._current_stream = out
+        self._stopped = False
         try:
             async for chunk in stream:
+                if self._stopped:
+                    break
                 if chunk:
                     arr = np.frombuffer(chunk, dtype=np.int16)
-                    await loop.run_in_executor(None, out.write, arr)
+                    await loop.run_in_executor(None, self._write_chunk, out, arr)
+                    if self._stopped:
+                        break
         finally:
             out.stop()
             out.close()
-            self._current_stream = None
+            if self._current_stream is out:
+                self._current_stream = None
+
+    def _write_chunk(self, out: sd.OutputStream, arr: np.ndarray) -> None:
+        """Blocking write that can be cut short by `stop()` aborting the stream."""
+        try:
+            out.write(arr)
+        except sd.PortAudioError:
+            # Expected when stop() aborts the stream while write() is blocking.
+            pass
 
     async def stop(self) -> None:
-        if self._current_stream:
-            self._current_stream.stop()
+        """Cut off whatever is currently playing, immediately."""
+        self._stopped = True
+        stream = self._current_stream
+        if stream is not None:
+            try:
+                stream.abort()
+            except sd.PortAudioError:
+                pass

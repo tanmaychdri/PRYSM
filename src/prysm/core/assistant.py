@@ -194,6 +194,26 @@ class PrysmAssistant:
             logger.warning(f"Cannot process — assistant is {self.state.name}")
             return None
 
+        # --- INTERCEPT SYSTEM COMMANDS ---
+        import re
+        clean_text = re.sub(r'[^a-z\s]', '', user_input.text.lower()).strip()
+        words = clean_text.split()
+        
+        is_standby = getattr(self, 'is_standby', False)
+        if is_standby:
+            if not any(w in clean_text for w in ["prism", "wake up"]):
+                return None
+            else:
+                self.is_standby = False
+        else:
+            if clean_text in ["sleep", "stand by"]:
+                self.is_standby = True
+                
+        if any(cmd in clean_text for cmd in ["follow my mouse", "stop following my mouse", "stop following"]) or "fmm" in words or "sf" in words:
+            logger.info(f"System command intercepted: {user_input.text}")
+            return None
+        # ---------------------------------
+
         try:
             await self.event_bus.publish(InputReceived(input_text=user_input.text, source=user_input.source))
             await self.set_state(AssistantState.PROCESSING, reason="input received")
@@ -214,9 +234,14 @@ class PrysmAssistant:
                 messages = self.context_manager.get_messages()
                 tools = self._build_tool_schemas()
 
-                response = await self.llm_provider.generate_response(
-                    messages, tools or None
-                )
+                if clean_text in ["sleep", "stand by"] and iteration == 1:
+                    response = BrainResponse(text="Standing by.", tool_calls=[])
+                elif any(w in clean_text for w in ["prism", "wake up"]) and iteration == 1:
+                    response = BrainResponse(text="I am back online sir.", tool_calls=[])
+                else:
+                    response = await self.llm_provider.generate_response(
+                        messages, tools or None
+                    )
 
                 self.context_manager.add_assistant_message(
                     text=response.text, tool_calls=response.tool_calls

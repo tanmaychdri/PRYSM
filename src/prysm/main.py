@@ -3,6 +3,7 @@ import asyncio
 import logging
 import sys
 import time
+import threading
 
 import numpy as np
 
@@ -30,6 +31,28 @@ def _auto_login(container) -> None:
         container.user_session.login(user)
 
 
+def _start_mascot_thread(event_bus):
+    """Launch the mascot in a separate thread with its own Qt event loop."""
+    mascot_ref = {}
+    
+    def _run_qt():
+        from PyQt6.QtWidgets import QApplication
+        from prysm.mascot import PrysmMascot
+        
+        app = QApplication(sys.argv)
+        mascot = PrysmMascot()
+        mascot.connect_to_prysm(event_bus)
+        mascot.show()
+        mascot_ref['mascot'] = mascot
+        mascot_ref['ready'] = True
+        app.exec()
+    
+    mascot_ref['ready'] = False
+    t = threading.Thread(target=_run_qt, daemon=True)
+    t.start()
+    return t
+
+
 # ---------------------------------------------------------------------------
 # Run modes
 # ---------------------------------------------------------------------------
@@ -42,6 +65,9 @@ async def run_voice() -> None:
 
     container = ApplicationContainer()
     _auto_login(container)
+    
+    # Launch mascot
+    _start_mascot_thread(container.event_bus)
 
     voice_pipeline = container.build_voice()  # builds audio only here
 
@@ -65,6 +91,9 @@ async def run_chat() -> None:
     container = ApplicationContainer()
 
     _auto_login(container)
+    
+    # Launch mascot
+    _start_mascot_thread(container.event_bus)
 
     assistant = container.assistant
     task = asyncio.create_task(assistant.run())

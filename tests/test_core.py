@@ -83,3 +83,27 @@ def test_tool_registry_register_and_list():
     registry = ToolRegistry()
     DummyTool().register(registry)
     assert "dummy" in registry.list_tools()
+
+
+# ── Voice Pipeline & Stop Detection ──────────────────────────────────────────
+
+def test_is_stop_command():
+    from prysm.audio.pipeline import is_stop_command
+
+    # Positive matches (with varied case, whitespace, and punctuation)
+    assert is_stop_command("stop")
+    assert is_stop_command("STOP!")
+    assert is_stop_command("  stop.  ")
+    assert is_stop_command("stop talking")
+    assert is_stop_command("shut up")
+    assert is_stop_command("be quiet!")
+    assert is_stop_command("that's enough")
+    assert is_stop_command("thats enough")
+    assert is_stop_command("never mind")
+
+    # Negative matches (longer sentences, full queries, general speech)
+    assert not is_stop_command("can you stop the music")
+    assert not is_stop_command("please stop doing that and tell me the weather")
+    assert not is_stop_command("what is the stop sign")
+    assert not is_stop_command("hello PRYSM")
+
